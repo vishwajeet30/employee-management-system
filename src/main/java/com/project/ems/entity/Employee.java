@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -48,7 +49,7 @@ public class Employee {
     @Column(nullable = false)                // Uses BigDecimal to protect financial figures from floating-point rounding errors
     private BigDecimal salary;
 
-    private String joiningDate;              // Stored as a String (Tip: consider changing to LocalDate later for better queries)
+    private LocalDate joiningDate;              // Stored as a String (Tip: consider changing to LocalDate later for better queries)
 
     private Boolean status = true;           // Application-level default value (defaults to 'true' / active upon creation)
 
