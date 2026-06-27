@@ -21,3 +21,13 @@ public class ResourceNotFoundException extends RuntimeException {
         super(message); // Passes the error message up to the parent RuntimeException class
     }
 }
+
+/*
+* super(message);
+Calling the Parent: super refers to the parent class, which is RuntimeException (as defined in class ResourceNotFoundException extends RuntimeException).
+The Action: It passes the message string up to the RuntimeException constructor.
+Why is this necessary?
+The RuntimeException class (and its ancestors Exception and Throwable) has a built-in field to store an error message.
+By calling super(message), you are telling the parent class: "Store this specific text so that when someone prints the stack trace or calls .getMessage(), they see this text."
+
+**/

@@ -33,7 +33,7 @@ public record EmployeeRequest (
 
         String phone,       // Optional field (no validation constraints applied)
 
-        String departmemnt, // Optional field (Tip: Watch out for the minor typo 'departmemnt' here!)
+        String department, // Optional field (Tip: Watch out for the minor typo 'departmemnt' here!)
 
         String designation, // Optional field
 

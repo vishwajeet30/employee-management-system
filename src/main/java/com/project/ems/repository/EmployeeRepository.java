@@ -21,7 +21,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
      * * Note: Make sure the field name 'employeCode' matches the spelling in your Entity
      * exactly (your Entity uses 'employeeCode' with a double 'e').
      */
-    Optional<Employee> findByEmployeCode(String employeCode);
+    Optional<Employee> findByEmployeeCode(String employeeCode);
 
     /**
      * Custom Query: Finds an employee by their unique email address.

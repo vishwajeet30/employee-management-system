@@ -50,7 +50,7 @@ public class Employee {
     private BigDecimal salary;
 
     private LocalDate joiningDate;              // Stored as a String (Tip: consider changing to LocalDate later for better queries)
-
+    @Builder.Default
     private Boolean status = true;           // Application-level default value (defaults to 'true' / active upon creation)
 
     private LocalDateTime createdAt;         // Audit field tracking when the employee record was first made
