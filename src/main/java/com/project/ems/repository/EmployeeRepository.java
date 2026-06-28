@@ -1,6 +1,8 @@
 package com.project.ems.repository;
 
 import com.project.ems.entity.Employee;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
@@ -43,4 +45,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
      * (SQL behind the scenes: SELECT COUNT(*) > 0 FROM employees WHERE employee_code = ?)
      */
     boolean existsByEmployeeCode(String employeeCode);
+
+    Page<Employee> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
+            String firstName,
+            String lastName,
+            Pageable pageable);
 }
