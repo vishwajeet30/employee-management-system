@@ -3,22 +3,35 @@ package com.project.ems.mapper;
 import com.project.ems.dto.EmployeeRequest;
 import com.project.ems.dto.EmployeeResponse;
 import com.project.ems.entity.Employee;
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import lombok.Builder;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
+/**
+ * Utility mapper class responsible for converting data between the
+ * API data transfer layers (DTOs) and the database persistence layer (Entities).
+ */
 @Component
 public class EmployeeMapper {
-    private EmployeeMapper(){}
-    public static Employee toEntity(EmployeeRequest request){
+
+    /**
+     * Private constructor to prevent instantiation.
+     * This class functions strictly as a stateless utility class with static methods.
+     */
+    private EmployeeMapper() {}
+
+    /**
+     * Maps an incoming EmployeeRequest DTO into an Employee database entity.
+     * Uses Lombok's Builder pattern for safe object construction.
+     *
+     * @param request the immutable Java Record containing client input
+     * @return a new Employee entity populated with request data
+     */
+    public static Employee toEntity(EmployeeRequest request) {
+        if (request == null) {
+            return null;
+        }
 
         return Employee.builder()
+                // Java Records use direct method accessors (no 'get' prefix)
                 .employeeCode(request.employeeCode())
                 .firstName(request.firstName())
                 .lastName(request.lastName())
@@ -28,12 +41,25 @@ public class EmployeeMapper {
                 .designation(request.designation())
                 .salary(request.salary())
                 .joiningDate(request.joiningDate())
+                // Business Logic: Automatically set new employees to active status
                 .status(true)
                 .build();
     }
 
-    public static EmployeeResponse toResponse(Employee employee){
+    /**
+     * Maps a database Employee entity into an outgoing EmployeeResponse DTO.
+     * Uses the canonical constructor of the response record/DTO.
+     *
+     * @param employee the managed database entity
+     * @return a populated EmployeeResponse DTO to return to the client
+     */
+    public static EmployeeResponse toResponse(Employee employee) {
+        if (employee == null) {
+            return null;
+        }
+
         return new EmployeeResponse(
+                // Standard entities use traditional Lombok/POJO JavaBean getters
                 employee.getId(),
                 employee.getEmployeeCode(),
                 employee.getFirstName(),
@@ -48,4 +74,3 @@ public class EmployeeMapper {
         );
     }
 }
-
