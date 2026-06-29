@@ -1,5 +1,7 @@
 package com.project.ems.exception;
-
+/*
+* Summary: Writing new ResourceNotFoundException(...) takes the same amount of typing as new RuntimeException(...) inside your service layer, but it gives your application a specific "label" that allows your Global Error Handler to intercept it and send back a perfect HTTP 404 response to your user.
+* */
 /**
  * Custom Business Exception thrown whenever a requested database record is not found.
  *

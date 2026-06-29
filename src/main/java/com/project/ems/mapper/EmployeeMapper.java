@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
  * Utility mapper class responsible for converting data between the
  * API data transfer layers (DTOs) and the database persistence layer (Entities).
  */
-@Component
 public class EmployeeMapper {
 
     /**
