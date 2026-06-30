@@ -29,8 +29,36 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    public EmployeeResponse updateEmployee(Long id, EmployeeRequest request){
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id : " + id));
+        if(!employee.getEmployeeCode().equals(request.employeeCode()) && employeeRepository.existsByEmployeeCode(request.employeeCode())){
+            throw new DuplicateResourceException("Employee code already exists : " + request.employeeCode());
+        }
+        if(!employee.getEmail().equals(request.email()) &&  employeeRepository.existsByEmail(request.email())){
+            throw new DuplicateResourceException("Email already exists : " + request.email());
+        }
+
+        employee.setEmployeeCode(request.employeeCode());
+        employee.setFirstName(request.firstName());
+        employee.setLastName(request.lastName());
+        employee.setEmail(request.email());
+        employee.setPhone(request.phone());
+        employee.setDepartment(request.department());
+        employee.setDesignation(request.designation());
+        employee.setSalary(request.salary());
+        employee.setJoiningDate(request.joiningDate());
+
+        Employee updatedEmployee = employeeRepository.save(employee);
+
+        return EmployeeMapper.toResponse(updatedEmployee);
+    }
+
+    @Override
     public EmployeeResponse getEmployeeById(Long id){
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with ID :" + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: "+id));
+        return EmployeeMapper.toResponse(employee);
     }
+
 }
