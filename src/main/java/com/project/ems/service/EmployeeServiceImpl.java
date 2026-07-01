@@ -8,6 +8,10 @@ import com.project.ems.exception.ResourceNotFoundException;
 import com.project.ems.mapper.EmployeeMapper;
 import com.project.ems.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -59,6 +63,36 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: "+id));
         return EmployeeMapper.toResponse(employee);
+    }
+
+    @Override
+    public EmployeeResponse getEmployeeByEmployeeCode(String employeeCode){
+        Employee employee = employeeRepository.findByEmployeeCode(employeeCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not Found with code : " + employeeCode));
+        return EmployeeMapper.toResponse(employee);
+    }
+
+    @Override
+    public Page<EmployeeResponse> getAllEmployees(
+            int page,
+            int size,
+            String sortBy,
+            String direction){
+        Sort sort = direction.equalsIgnoreCase("DESC")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return employeeRepository.findAll(pageable).map(EmployeeMapper::toResponse);
+    }
+
+    @Override
+    public Page<EmployeeResponse> searchEmployees(
+            String keyword,
+            int page,
+            int size){
+        Pageable pageable = PageRequest.of(page, size, Sort.by("employeeCode").descending());
+        return employeeRepository.searchEmployees(keyword, pageable)
     }
 
 }
