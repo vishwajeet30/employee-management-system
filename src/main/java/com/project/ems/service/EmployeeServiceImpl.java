@@ -93,6 +93,14 @@ public class EmployeeServiceImpl implements EmployeeService {
             int size){
         Pageable pageable = PageRequest.of(page, size, Sort.by("employeeCode").descending());
         return employeeRepository.searchEmployees(keyword, pageable)
+                .map(EmployeeMapper::toResponse);
+    }
+
+    @Override
+    public void deleteEmployee(Long id){
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id : " + id));
+        employeeRepository.delete(employee);
     }
 
 }
