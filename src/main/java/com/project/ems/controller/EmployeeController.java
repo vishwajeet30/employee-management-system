@@ -3,15 +3,13 @@ package com.project.ems.controller;
 import com.project.ems.dto.ApiResponse;
 import com.project.ems.dto.EmployeeRequest;
 import com.project.ems.dto.EmployeeResponse;
+import com.project.ems.entity.Employee;
 import com.project.ems.service.EmployeeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 
@@ -34,4 +32,22 @@ public class EmployeeController {
                 .build();
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    //___________________________________________________________________________________________________
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeById(
+            @PathVariable Long id){
+        EmployeeResponse employee = employeeService.getEmployeeById(id);
+
+        ApiResponse<EmployeeResponse> response = ApiResponse.<EmployeeResponse>builder()
+                .success(true)
+                .message("Employee Retrieved Successfully")
+                .data(employee)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+
 }
