@@ -19,7 +19,7 @@ public record ApiResponse<T>(
 
         // The actual payload/content returned by the API endpoint
         // Note: You might want to rename this from 'date' to 'data' to avoid confusion with time/dates!
-        T date,
+        T data,
 
         // The exact date and time when the response was generated
         LocalDateTime timestamp
