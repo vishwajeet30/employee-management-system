@@ -16,5 +16,19 @@ public class EmployeeController {
     private final EmployeeService employeeService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<EmployeeResponse>> createEmployee()
+    public ResponseEntity<ApiResponse<EmployeeResponse>> createEmployee(
+            @Valid @RequestBody EmployeeRequest request){
+        EmployeeResponse employee = employeeService.createEmployee(request);
+
+        ApiResponse<EmployeeResponse> response = ApiResponse.<EmployeeResponse>builder()
+                .success(true)
+                .message("Employee created successfully.")
+                .data(employee)
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        //Return HTTP 201 created
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+    }
 }
