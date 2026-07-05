@@ -5,6 +5,9 @@ import com.project.ems.dto.EmployeeRequest;
 import com.project.ems.dto.EmployeeResponse;
 import com.project.ems.entity.Employee;
 import com.project.ems.service.EmployeeService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,9 +20,22 @@ import java.time.LocalDateTime;
 @RestController
 @RequestMapping("/api/v1/employee")
 @RequiredArgsConstructor
+@Tag(
+        name = "Employee Management",
+        description = "APIs for managing employee records"
+)
 public class EmployeeController {
     private final EmployeeService employeeService;
 
+    @Operation(
+            summary = "Create a new employee",
+            description = "Creates and stores a new employee in the database."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Employee created successfully"),
+            @ApiResponse(responseCode = "400", description = "Validation failed"),
+            @ApiResponse(responseCode = "409", description = "Duplicate employee")
+    })
     @PostMapping
     public ResponseEntity<ApiResponse<EmployeeResponse>> createEmployee(
             @Valid @RequestBody EmployeeRequest request){

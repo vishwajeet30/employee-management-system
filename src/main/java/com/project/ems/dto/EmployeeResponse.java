@@ -1,37 +1,49 @@
 package com.project.ems.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * Data Transfer Object (DTO) representing a clean Employee response payload.
- *
- * DESIGN HIGHLIGHTS:
- * - Uses a Java 'record' to enforce data immutability (final fields, no setters).
- * - Automatically provides constructor, equals(), hashCode(), and toString() behind the scenes.
- * - Used exclusively for sending safe, filtered employee data back to the client/frontend API.
- * - Excludes internal database auditing fields (like createdAt/updatedAt) to optimize payload size.
+ * DTO returned to the client after successful employee operations.
  */
-public record EmployeeResponse (
-        // Unique database identifier for the employee record
+@Schema(
+        name = "Employee Response",
+        description = "Response object representing employee details."
+)
+public record EmployeeResponse(
+
+        @Schema(description = "Database ID", example = "1")
         Long id,
 
-        // Public business identifier (e.g., "EMP-1002")
+        @Schema(description = "Employee code", example = "EMP001")
         String employeeCode,
 
+        @Schema(description = "First name", example = "Vishwajeet")
         String firstName,
+
+        @Schema(description = "Last name", example = "Singh")
         String lastName,
+
+        @Schema(description = "Official email", example = "vishwajeet@example.com")
         String email,
+
+        @Schema(description = "Phone number", example = "9876543210")
         String phone,
+
+        @Schema(description = "Department", example = "IT")
         String department,
+
+        @Schema(description = "Designation", example = "Software Engineer")
         String designation,
 
-        // Exact decimal precision for salary to prevent floating-point calculation errors
+        @Schema(description = "Monthly salary", example = "65000")
         BigDecimal salary,
 
-        // Stored as LocalDate here for standard ISO date formatting (YYYY-MM-DD) in API JSON responses
+        @Schema(description = "Joining date", example = "2026-07-05")
         LocalDate joiningDate,
 
-        // Represents active/inactive status of the employee
+        @Schema(description = "Employee status", example = "true")
         Boolean status
-){}
+) {}

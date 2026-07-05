@@ -1,26 +1,30 @@
 package com.project.ems.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
+
 import java.time.LocalDateTime;
 
 /**
- * A generic wrapper class used to standardize API responses across the application.
- * Using a Java Record ensures this object is immutable and concise.
- *
- * @param <T> The type of the payload data returned in the response.
+ * Standard response wrapper for successful API responses.
  */
 @Builder
+@Schema(
+        name = "API Response",
+        description = "Standard wrapper returned for successful API responses."
+)
 public record ApiResponse<T>(
-        // Indicates if the operation was successful (true) or failed (false)
+
+        @Schema(description = "Indicates whether the request was successful", example = "true")
         boolean success,
 
-        // A descriptive message providing context about the response (e.g., "User created successfully")
+        @Schema(description = "Success message", example = "Employee created successfully.")
         String message,
 
-        // The actual payload/content returned by the API endpoint
-        // Note: You might want to rename this from 'date' to 'data' to avoid confusion with time/dates!
+        @Schema(description = "Actual response data")
         T data,
 
-        // The exact date and time when the response was generated
+        @Schema(description = "Time at which the response was generated")
         LocalDateTime timestamp
+
 ) {}

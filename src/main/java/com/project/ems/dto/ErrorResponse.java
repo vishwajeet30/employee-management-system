@@ -1,36 +1,37 @@
 package com.project.ems.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
- * Standard error response returned by the application
- * whenever an exception occurs.
- *
- * This class provides detailed information about the error
- * to help API consumers understand what went wrong.
+ * Standard response returned whenever an exception occurs.
  */
 @Builder
+@Schema(
+        name = "Error Response",
+        description = "Standard error response returned by the application."
+)
 public record ErrorResponse(
 
-        // Time when the error occurred
+        @Schema(description = "Timestamp of the error")
         LocalDateTime timestamp,
 
-        // HTTP status code (404, 400, 500, etc.)
+        @Schema(description = "HTTP status code", example = "404")
         int status,
 
-        // HTTP status reason phrase (Not Found, Bad Request, etc.)
+        @Schema(description = "HTTP error", example = "Not Found")
         String error,
 
-        // Human-readable error message
+        @Schema(description = "Detailed error message")
         String message,
 
-        // Requested API path
+        @Schema(description = "API path that caused the error")
         String path,
 
-        // Validation errors (only used for validation failures)
+        @Schema(description = "Validation errors (if applicable)")
         Map<String, String> validationErrors
 
 ) {}

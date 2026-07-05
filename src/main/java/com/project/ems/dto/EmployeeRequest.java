@@ -1,5 +1,6 @@
 package com.project.ems.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -9,38 +10,74 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * Data Transfer Object (DTO) for capturing incoming Employee creation or update payloads.
- *
- * DESIGN HIGHLIGHTS:
- * - Uses a Java 'record' to act as an immutable data holder for client requests.
- * - Leverages Jakarta Validation constraints to automatically sanitize and validate incoming input.
- * - Excludes database-managed fields like 'id', 'createdAt', or 'updatedAt' since clients shouldn't provide them.
+ * DTO used for creating or updating an employee.
+ * This object represents the request body sent by the client.
  */
-public record EmployeeRequest (
+@Schema(
+        name = "Employee Request",
+        description = "Request object used to create or update an employee."
+)
+public record EmployeeRequest(
 
-        @NotBlank(message = "Employee code is required") // Cannot be null, empty, or just whitespace
+        @Schema(
+                description = "Unique employee code",
+                example = "EMP001"
+        )
+        @NotBlank(message = "Employee code is required")
         String employeeCode,
 
-        @NotBlank(message = "First Name is required")
+        @Schema(
+                description = "Employee first name",
+                example = "Vishwajeet"
+        )
+        @NotBlank(message = "First name is required")
         String firstName,
 
-        @NotBlank(message = "Last Name is required")
+        @Schema(
+                description = "Employee last name",
+                example = "Singh"
+        )
+        @NotBlank(message = "Last name is required")
         String lastName,
 
-        @Email(message = "Invalid email format")        // Enforces a structured format (e.g., user@domain.com)
+        @Schema(
+                description = "Official email address",
+                example = "vishwajeet@example.com"
+        )
+        @Email(message = "Invalid email format")
         @NotBlank(message = "Email is required")
         String email,
 
-        String phone,       // Optional field (no validation constraints applied)
+        @Schema(
+                description = "Mobile number",
+                example = "9876543210"
+        )
+        String phone,
 
-        String department, // Optional field (Tip: Watch out for the minor typo 'departmemnt' here!)
+        @Schema(
+                description = "Department name",
+                example = "IT"
+        )
+        String department,
 
-        String designation, // Optional field
+        @Schema(
+                description = "Employee designation",
+                example = "Software Engineer"
+        )
+        String designation,
 
+        @Schema(
+                description = "Monthly salary",
+                example = "65000"
+        )
         @NotNull(message = "Salary is required")
-        @Positive(message = "Salary must be greater than zero") // Enforces that compensation figures must be a positive number
+        @Positive(message = "Salary must be greater than zero")
         BigDecimal salary,
 
-        @NotNull(message = "Joining date is required") // Ensures a valid calendar date is provided
+        @Schema(
+                description = "Joining date",
+                example = "2026-07-05"
+        )
+        @NotNull(message = "Joining date is required")
         LocalDate joiningDate
 ) {}

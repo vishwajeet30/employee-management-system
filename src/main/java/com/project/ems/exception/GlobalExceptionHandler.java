@@ -1,6 +1,9 @@
 package com.project.ems.exception;
 
-import com.project.ems.dto.ApiResponse;
+import com.project.ems.dto.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,111 +17,135 @@ import java.util.Map;
 /**
  * Global exception handler for the entire application.
  *
- * Any exception thrown from a Controller will be handled here,
- * resulting in consistent and user-friendly API responses.
+ * Every exception thrown from any REST controller is handled here,
+ * ensuring consistent and meaningful error responses.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * Handles cases where a requested resource (Employee, Department, etc.)
-     * does not exist.
+     * Logger used to record application errors.
+     * We'll configure Logback later in the project.
+     */
+    private static final Logger logger =
+            LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    /**
+     * Handles Resource Not Found exceptions.
      *
-     * Returns HTTP Status: 404 NOT FOUND
+     * Example:
+     * Employee not found.
+     * Department not found.
      */
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleResourceNotFoundException(
-            ResourceNotFoundException ex) {
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
+            ResourceNotFoundException ex,
+            HttpServletRequest request) {
 
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(false)
-                .message(ex.getMessage())
-                .data(null)
-                .timestamp(LocalDateTime.now())
-                .build();
+        logger.error("Resource not found: {}", ex.getMessage());
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        return buildErrorResponse(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                request.getRequestURI(),
+                null
+        );
     }
 
     /**
      * Handles duplicate resource exceptions.
-     *
-     * Example:
-     * - Duplicate email
-     * - Duplicate employee code
-     *
-     * Returns HTTP Status: 409 CONFLICT
      */
     @ExceptionHandler(DuplicateResourceException.class)
-    public ResponseEntity<ApiResponse<Void>> handleDuplicateResourceException(
-            DuplicateResourceException ex) {
+    public ResponseEntity<ErrorResponse> handleDuplicateResourceException(
+            DuplicateResourceException ex,
+            HttpServletRequest request) {
 
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(false)
-                .message(ex.getMessage())
-                .data(null)
-                .timestamp(LocalDateTime.now())
-                .build();
+        logger.error("Duplicate resource: {}", ex.getMessage());
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        return buildErrorResponse(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                request.getRequestURI(),
+                null
+        );
     }
 
     /**
-     * Handles Bean Validation failures.
+     * Handles Bean Validation exceptions.
      *
-     * Example:
-     * - Blank first name
-     * - Invalid email
-     * - Negative salary
-     *
-     * Returns HTTP Status: 400 BAD REQUEST
+     * Triggered automatically whenever @Valid fails.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(
-            MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> handleValidationException(
+            MethodArgumentNotValidException ex,
+            HttpServletRequest request) {
 
-        Map<String, String> errors = new HashMap<>();
+        Map<String, String> validationErrors = new HashMap<>();
 
-        // Collect validation errors into a map
+        // Collect every validation error
         ex.getBindingResult()
                 .getFieldErrors()
                 .forEach(error ->
-                        errors.put(error.getField(), error.getDefaultMessage()));
+                        validationErrors.put(
+                                error.getField(),
+                                error.getDefaultMessage()));
 
-        ApiResponse<Map<String, String>> response =
-                ApiResponse.<Map<String, String>>builder()
-                        .success(false)
-                        .message("Validation failed.")
-                        .data(errors)
-                        .timestamp(LocalDateTime.now())
-                        .build();
+        logger.error("Validation failed.");
 
-        return ResponseEntity.badRequest().body(response);
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                "Validation failed.",
+                request.getRequestURI(),
+                validationErrors
+        );
     }
 
     /**
-     * Handles all unexpected exceptions.
+     * Handles every unexpected exception.
      *
-     * This acts as a safety net for any exception that
-     * isn't handled by another @ExceptionHandler method.
-     *
-     * Returns HTTP Status: 500 INTERNAL SERVER ERROR
+     * This should always be the last exception handler.
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGenericException(
-            Exception ex) {
+    public ResponseEntity<ErrorResponse> handleException(
+            Exception ex,
+            HttpServletRequest request) {
 
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(false)
-                .message("An unexpected error occurred.")
-                .data(null)
+        logger.error("Unexpected exception occurred.", ex);
+
+        return buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Something went wrong. Please contact the administrator.",
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    /**
+     * Utility method for creating a standardized ErrorResponse.
+     *
+     * This prevents duplicate builder code in every exception handler.
+     *
+     * @param status HTTP status code
+     * @param message Error message
+     * @param path Requested API endpoint
+     * @param validationErrors Validation error map (if any)
+     * @return ResponseEntity containing ErrorResponse
+     */
+    private ResponseEntity<ErrorResponse> buildErrorResponse(
+            HttpStatus status,
+            String message,
+            String path,
+            Map<String, String> validationErrors) {
+
+        ErrorResponse response = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message(message)
+                .path(path)
+                .validationErrors(validationErrors)
                 .build();
 
-        // In production, log the exception here using a logger.
-        ex.printStackTrace();
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(response);
+        return ResponseEntity.status(status).body(response);
     }
 }
