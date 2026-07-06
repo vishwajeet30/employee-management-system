@@ -9,31 +9,30 @@ import lombok.Builder;
 @Builder
 @Schema(
         name = "Authentication Response",
-        description = "JWT authentication response."
+        description = "Response returned after successful authentication."
 )
 public record AuthenticationResponse(
 
         @Schema(
-                description = "JWT Access Token",
-                example = "eyJhbGciOiJIUzI1NiJ9..."
+                description = "JWT access token"
         )
         String accessToken,
 
         @Schema(
-                description = "Token type",
+                description = "Authentication type",
                 example = "Bearer"
         )
         String tokenType,
 
         @Schema(
-                description = "Logged in username",
+                description = "Logged-in username",
                 example = "vishwajeet"
         )
         String username,
 
         @Schema(
-                description = "User role",
-                example = "EMPLOYEE"
+                description = "Logged-in user's role",
+                example = "ADMIN"
         )
         String role
 

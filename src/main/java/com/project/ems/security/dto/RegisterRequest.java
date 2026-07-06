@@ -1,16 +1,18 @@
 package com.project.ems.security.dto;
 
+import com.project.ems.security.entity.RoleType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * DTO used to register a new user.
+ * DTO representing the request body used
+ * for registering a new user.
  */
 @Schema(
         name = "Register Request",
-        description = "Request object used for user registration."
+        description = "Request payload used to register a new user."
 )
 public record RegisterRequest(
 
@@ -24,7 +26,7 @@ public record RegisterRequest(
         String username,
 
         @Schema(
-                description = "User email",
+                description = "User email address",
                 example = "vishwajeet@gmail.com"
         )
         @Email(message = "Invalid email format")
@@ -32,7 +34,7 @@ public record RegisterRequest(
         String email,
 
         @Schema(
-                description = "Password",
+                description = "User password",
                 example = "Password@123"
         )
         @NotBlank(message = "Password is required")
@@ -44,7 +46,7 @@ public record RegisterRequest(
                 description = "Role assigned to the user",
                 example = "EMPLOYEE"
         )
-        @NotBlank(message = "Role is required")
-        String role
+        RoleType role
+
 ) {
 }

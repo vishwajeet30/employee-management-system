@@ -4,11 +4,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * DTO used for user login.
+ * DTO representing the login request.
  */
 @Schema(
         name = "Login Request",
-        description = "Request object used for user authentication."
+        description = "Request payload used for user authentication."
 )
 public record LoginRequest(
 
