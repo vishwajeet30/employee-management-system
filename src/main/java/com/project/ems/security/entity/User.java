@@ -78,7 +78,7 @@ public class User {
      */
     @Builder.Default
     @Column(nullable = false)
-    private Boolean accountNonExpired = true;
+    private Boolean enabled = true;
 
     /**
      * Indicates whether the account is locked.
@@ -89,7 +89,8 @@ public class User {
      */
     @Builder.Default
     @Column(nullable = false)
-    private Boolean credentialsNonExpired = true;
+    private Boolean accountNonLocked = true;
+
     /**
      * Time when the user account was created.
      */
