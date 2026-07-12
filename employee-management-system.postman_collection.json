@@ -1,0 +1,53 @@
+{
+	"info": {
+		"_postman_id": "a9d0f39e-d309-410a-b30f-488f7b764c5d",
+		"name": "Employee Management System",
+		"description": "Postman Collection for testing the Employee Management System API.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"vishwajeet\",\n  \"email\": \"vishwajeet@gmail.com\",\n  \"password\": \"Password@123\",\n  \"role\": \"EMPLOYEE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/v1/auth/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Registers a new user (ADMIN, HR, or EMPLOYEE) and returns a JWT access token."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
