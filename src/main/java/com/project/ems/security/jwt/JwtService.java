@@ -2,83 +2,138 @@ package com.project.ems.security.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.Map;
+import java.util.function.Function;
 
 /**
- * Service responsible for generating and validating JWT tokens.
+ * Service responsible for creating, reading and validating JWT tokens.
  */
 @Service
 public class JwtService {
 
     /**
-     * Secret key used to sign JWT tokens.
-     *
-     * IMPORTANT:
-     * In production, keep this in application.yml or environment variables,
-     * not hardcoded.
+     * Base64-encoded secret key loaded from application configuration.
      */
-    private static final String SECRET_KEY =
-            "my-super-secret-key-my-super-secret-key-123456";
+    private final String secretKey;
 
     /**
-     * Token validity time.
-     * Here: 24 hours.
+     * Access-token validity duration in milliseconds.
      */
-    private static final long EXPIRATION_TIME =
-            1000 * 60 * 60 * 24;
+    private final long accessTokenExpiration;
 
     /**
-     * Generates JWT token using username and role.
+     * Constructor injection for JWT configuration values.
      *
-     * @param username logged-in username
-     * @param role user role
-     * @return JWT token
+     * @param secretKey Base64-encoded signing secret
+     * @param accessTokenExpiration token lifetime in milliseconds
+     */
+    public JwtService(
+            @Value("${application.security.jwt.secret-key}")
+            String secretKey,
+
+            @Value("${application.security.jwt.access-token-expiration}")
+            long accessTokenExpiration) {
+
+        this.secretKey = secretKey;
+        this.accessTokenExpiration = accessTokenExpiration;
+    }
+
+    /**
+     * Generates a JWT containing username and role.
+     *
+     * @param username authenticated username
+     * @param role authenticated user's role
+     * @return signed JWT access token
      */
     public String generateToken(String username, String role) {
 
+        Map<String, Object> claims = Map.of(
+                "role", role
+        );
+
+        return buildToken(
+                claims,
+                username,
+                accessTokenExpiration
+        );
+    }
+
+    /**
+     * Creates and signs a JWT token.
+     */
+    private String buildToken(
+            Map<String, Object> extraClaims,
+            String username,
+            long expiration) {
+
+        long currentTime = System.currentTimeMillis();
+
         return Jwts.builder()
-                // Username is stored as subject
+                .claims(extraClaims)
                 .subject(username)
-
-                // Custom claim for role
-                .claim("role", role)
-
-                // Token creation time
-                .issuedAt(new Date())
-
-                // Token expiry time
-                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-
-                // Sign token using secret key
+                .issuedAt(new Date(currentTime))
+                .expiration(new Date(currentTime + expiration))
                 .signWith(getSigningKey())
-
                 .compact();
     }
 
     /**
-     * Extracts username from JWT token.
+     * Extracts the username stored in the token subject.
+     *
+     * @param token JWT token
+     * @return username
      */
     public String extractUsername(String token) {
 
-        return extractAllClaims(token).getSubject();
+        return extractClaim(
+                token,
+                Claims::getSubject
+        );
     }
 
     /**
-     * Extracts user role from JWT token.
+     * Extracts the role claim stored in the JWT.
+     *
+     * @param token JWT token
+     * @return role name
      */
     public String extractRole(String token) {
 
-        return extractAllClaims(token).get("role", String.class);
+        return extractAllClaims(token)
+                .get("role", String.class);
     }
 
     /**
-     * Checks whether token is valid for given username.
+     * Extracts one claim using the supplied resolver function.
      */
-    public boolean isTokenValid(String token, String username) {
+    public <T> T extractClaim(
+            String token,
+            Function<Claims, T> claimsResolver) {
+
+        Claims claims = extractAllClaims(token);
+
+        return claimsResolver.apply(claims);
+    }
+
+    /**
+     * Validates whether the token belongs to the supplied username
+     * and has not expired.
+     *
+     * @param token JWT token
+     * @param username expected username
+     * @return true when valid
+     */
+    public boolean isTokenValid(
+            String token,
+            String username) {
 
         String extractedUsername = extractUsername(token);
 
@@ -87,32 +142,60 @@ public class JwtService {
     }
 
     /**
-     * Checks whether token is expired.
+     * Alternative validation method using UserDetails.
+     */
+    public boolean isTokenValid(
+            String token,
+            UserDetails userDetails) {
+
+        return isTokenValid(
+                token,
+                userDetails.getUsername()
+        );
+    }
+
+    /**
+     * Checks whether the token expiry date is before the current time.
      */
     private boolean isTokenExpired(String token) {
 
-        return extractAllClaims(token)
-                .getExpiration()
+        return extractExpiration(token)
                 .before(new Date());
     }
 
     /**
-     * Extracts all claims from JWT token.
+     * Extracts the token expiration timestamp.
+     */
+    private Date extractExpiration(String token) {
+
+        return extractClaim(
+                token,
+                Claims::getExpiration
+        );
+    }
+
+    /**
+     * Parses and verifies the signed JWT.
+     *
+     * Signature verification happens automatically using
+     * the configured signing key.
      */
     private Claims extractAllClaims(String token) {
 
         return Jwts.parser()
-                .setSigningKey(getSigningKey())
+                .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
     }
 
     /**
-     * Converts secret string into signing key.
+     * Converts the Base64 secret into a cryptographic signing key.
      */
-    private Key getSigningKey() {
+    private SecretKey getSigningKey() {
 
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 }
