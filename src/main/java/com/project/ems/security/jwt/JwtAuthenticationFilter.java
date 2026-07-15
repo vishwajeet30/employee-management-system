@@ -151,6 +151,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                      */
                     SecurityContextHolder.getContext()
                             .setAuthentication(authenticationToken);
+
+                    logger.info(
+                            "JWT authenticated user: {}, authorities: {}",
+                            userDetails.getUsername(),
+                            userDetails.getAuthorities()
+                    );
                 }
             }
 

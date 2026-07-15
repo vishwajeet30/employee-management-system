@@ -126,6 +126,7 @@ public class SecurityConfig {
                          */
                         .requestMatchers(
                                 HttpMethod.GET,
+                                "/api/v1/employees",
                                 "/api/v1/employees/**"
                         )
                         .authenticated()

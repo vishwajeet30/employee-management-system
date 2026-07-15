@@ -1,38 +1,28 @@
 package com.project.ems.security.repository;
 
 import com.project.ems.security.entity.User;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
 /**
- * Repository interface responsible for all
- * database operations related to User.
+ * Repository responsible for User database operations.
  */
 public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
-     * Finds a user by username.
+     * Loads the user and their assigned role in the same query.
      *
-     * Used during authentication.
+     * The role is required while creating Spring Security authorities
+     * such as ROLE_ADMIN and ROLE_EMPLOYEE.
      */
+    @EntityGraph(attributePaths = "role")
     Optional<User> findByUsername(String username);
 
-    /**
-     * Finds a user by email.
-     *
-     * Useful for password reset
-     * and account verification.
-     */
     Optional<User> findByEmail(String email);
 
-    /**
-     * Checks whether a username already exists.
-     */
     boolean existsByUsername(String username);
 
-    /**
-     * Checks whether an email already exists.
-     */
     boolean existsByEmail(String email);
 }

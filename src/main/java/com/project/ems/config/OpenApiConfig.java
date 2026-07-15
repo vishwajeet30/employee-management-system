@@ -25,7 +25,6 @@ public class OpenApiConfig {
         return new OpenAPI()
 
                 .info(new Info()
-
                         // API title
                         .title("Enterprise Employee Management System API")
 
