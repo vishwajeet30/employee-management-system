@@ -1,4 +1,4 @@
-package com.project.ems.service;
+package com.project.ems.service.impl;
 
 import com.project.ems.dto.EmployeeRequest;
 import com.project.ems.dto.EmployeeResponse;
@@ -7,6 +7,7 @@ import com.project.ems.exception.DuplicateResourceException;
 import com.project.ems.exception.ResourceNotFoundException;
 import com.project.ems.mapper.EmployeeMapper;
 import com.project.ems.repository.EmployeeRepository;
+import com.project.ems.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,10 +23,10 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public EmployeeResponse createEmployee(EmployeeRequest request){
         if(employeeRepository.existsByEmail(request.email())){
-            throw new DuplicateResourceException("Email already exists");
+            throw new DuplicateResourceException("Email already exists: " + request.email());
         }
         if(employeeRepository.existsByEmployeeCode(request.employeeCode())){
-            throw new DuplicateResourceException("Employee code already exists");
+            throw new DuplicateResourceException("Employee code already exists: " + request.employeeCode());
         }
         Employee employee = EmployeeMapper.toEntity(request);
         Employee savedEmployee = employeeRepository.save(employee);
