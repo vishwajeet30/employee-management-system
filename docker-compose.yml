@@ -1,0 +1,96 @@
+services:
+
+  # ==========================================================
+  # MySQL Database
+  # ==========================================================
+  mysql:
+    image: mysql:8.4
+    container_name: ems-mysql
+
+    environment:
+      # Database automatically created when MySQL starts
+      MYSQL_DATABASE: employee_management_db
+
+      # Application database user
+      MYSQL_USER: ems_user
+      MYSQL_PASSWORD: ems_password
+
+      # MySQL administrator password
+      MYSQL_ROOT_PASSWORD: rootpassword
+
+    ports:
+      # Host port 3307 maps to MySQL container port 3306.
+      #
+      # Port 3307 avoids conflict if your local MySQL
+      # is already running on port 3306.
+      - "3307:3306"
+
+    volumes:
+      # Keep database records after the container stops
+      - mysql_data:/var/lib/mysql
+
+    healthcheck:
+      # Verify that MySQL is ready to receive connections
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} --silent"
+        ]
+
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+    restart: unless-stopped
+
+
+  # ==========================================================
+  # Spring Boot Backend
+  # ==========================================================
+  app:
+    build:
+      # Dockerfile and build context are in the project root
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: ems-backend
+
+    depends_on:
+      mysql:
+        # Start the backend only after MySQL becomes healthy
+        condition: service_healthy
+
+    environment:
+      # Inside Docker, "mysql" is the database service hostname.
+      #
+      # Do not use localhost here because localhost inside the
+      # backend container refers to the backend container itself.
+      SPRING_DATASOURCE_URL: >-
+        jdbc:mysql://mysql:3306/employee_management_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+
+      SPRING_DATASOURCE_USERNAME: ems_user
+      SPRING_DATASOURCE_PASSWORD: ems_password
+
+      # Hibernate automatically updates the development schema
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
+      # Base64-encoded development JWT key
+      APPLICATION_SECURITY_JWT_SECRET_KEY: >-
+        YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXphYmNkZWYxMjM0NTY=
+
+      # JWT validity: 24 hours in milliseconds
+      APPLICATION_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION: 86400000
+
+    ports:
+      # Spring Boot application port
+      - "8080:8080"
+
+    restart: unless-stopped
+
+
+# ============================================================
+# Persistent Docker volumes
+# ============================================================
+volumes:
+  mysql_data:
