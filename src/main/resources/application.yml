@@ -22,7 +22,7 @@ spring:
     #
     # Docker overrides these values through environment variables.
     username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:your_mysql_password}
+    password: root
 
     driver-class-name: com.mysql.cj.jdbc.Driver
 
