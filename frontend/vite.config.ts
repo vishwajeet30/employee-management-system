@@ -23,3 +23,13 @@ export default defineConfig({
     },
   },
 });
+
+/**
+ The browser calls:
+
+ http://localhost:5173/api/v1/auth/login
+
+ Vite forwards it internally to:
+
+ http://localhost:8080/api/v1/auth/login
+ */

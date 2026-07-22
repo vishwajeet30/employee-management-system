@@ -1,6 +1,8 @@
 import type { AuthenticationResponse, StoredAuth } from "./types";
 
 /**
+ * Small utility module that manages login state in the browser
+
  * Local-storage key used for authentication data.
  */
 const AUTH_STORAGE_KEY = "ems_auth";
