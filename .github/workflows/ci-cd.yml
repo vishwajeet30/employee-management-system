@@ -1,0 +1,170 @@
+name: EEMS CI/CD Pipeline
+
+# ============================================================
+# Pipeline Triggers
+# ============================================================
+on:
+
+  # Run when code is pushed to main or develop
+  push:
+    branches:
+      - main
+      - develop
+
+  # Run when a pull request targets main
+  pull_request:
+    branches:
+      - main
+
+
+# ============================================================
+# Token Permissions
+# ============================================================
+#
+# contents: read
+#   Allows the workflow to read repository code.
+#
+# packages: write
+#   Allows the workflow to publish Docker images to GHCR.
+#
+permissions:
+  contents: read
+  packages: write
+
+
+# ============================================================
+# Jobs
+# ============================================================
+jobs:
+
+  # ==========================================================
+  # JOB 1: Backend Tests
+  # ==========================================================
+  backend-test:
+
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # Download the repository source code
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # Install Java 21 and enable Maven dependency caching
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # Compile the backend and run all JUnit/Mockito tests
+      - name: Test Spring Boot backend
+        run: mvn --batch-mode clean verify
+
+
+  # ==========================================================
+  # JOB 2: Frontend Build
+  # ==========================================================
+  frontend-build:
+
+    name: Frontend Build
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # Download the repository source code
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # Install Node.js and enable npm dependency caching
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Install the exact dependency versions from package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      # Compile TypeScript and create the production frontend build
+      - name: Build React frontend
+        working-directory: frontend
+        run: npm run build
+
+
+  # ==========================================================
+  # JOB 3: Docker Build and Publish
+  # ==========================================================
+  docker-build:
+
+    name: Docker Build and Publish
+    runs-on: ubuntu-latest
+
+    # Do not build the image unless backend and frontend succeed
+    needs:
+      - backend-test
+      - frontend-build
+
+    steps:
+
+      # Download the repository source code
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # Convert owner/repository name to lowercase because
+      # Docker image names must use lowercase characters.
+      - name: Set Docker image name
+        shell: bash
+        run: |
+          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      # Configure Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Log in to GitHub Container Registry only when code
+      # is pushed directly to the main branch.
+      #
+      # Pull requests only verify that the image builds;
+      # they do not publish an image.
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Generate Docker image tags and labels
+      - name: Generate Docker metadata
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+
+      # Build the Docker image on every workflow run.
+      #
+      # Push the image only when code is pushed to main.
+      - name: Build and publish Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+
+          # Reuse Docker layers between workflow runs
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

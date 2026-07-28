@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: employee-management-system
+  datasource:
+    url: jdbc:h2:mem:employee_management_db;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+application:
+  security:
+    jwt:
+      secret-key: ${APPLICATION_SECURITY_JWT_SECRET_KEY:YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXphYmNkZWYxMjM0NTY=}
+      access-token-expiration: ${APPLICATION_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION:86400000}
