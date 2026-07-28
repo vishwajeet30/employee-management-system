@@ -2,19 +2,18 @@ import { useNavigate } from "react-router";
 import { clearAuth, getAuth } from "../authStorage";
 
 /**
- * Small landing page displayed after successful login.
- *
- * Employee and Leave navigation will be connected next.
+ * Main page displayed after successful authentication.
  */
 export default function DashboardPage() {
   const navigate = useNavigate();
   const auth = getAuth();
 
   /**
-   * Clears authentication and returns to login.
+   * Removes the stored JWT and returns to login.
    */
-  function handleLogout() {
+  function handleLogout(): void {
     clearAuth();
+
     navigate("/login", {
       replace: true,
     });
@@ -25,14 +24,16 @@ export default function DashboardPage() {
       <header className="dashboard-header">
         <div>
           <p className="eyebrow">EEMS Dashboard</p>
+
           <h1>Welcome, {auth?.username}</h1>
+
           <p>
-            Signed in as{" "}
-            <strong>{auth?.role}</strong>
+            Signed in as <strong>{auth?.role}</strong>
           </p>
         </div>
 
         <button
+          type="button"
           className="secondary-button"
           onClick={handleLogout}
         >
@@ -45,20 +46,32 @@ export default function DashboardPage() {
           <h2>Employees</h2>
 
           <p>
-            View, search and manage employee records.
+            View and search employee records using secured
+            Spring Boot APIs.
           </p>
 
-          <span>Coming in the next step</span>
+          <button
+            type="button"
+            onClick={() => navigate("/employees")}
+          >
+            Open employees
+          </button>
         </article>
 
         <article className="dashboard-card">
           <h2>Leave Management</h2>
 
           <p>
-            Apply for leave and review leave requests.
+            Apply for leave, view your requests, and review
+            pending applications.
           </p>
 
-          <span>Coming in the next step</span>
+          <button
+            type="button"
+            onClick={() => navigate("/leaves")}
+          >
+            Open leave management
+          </button>
         </article>
       </section>
     </main>
