@@ -1,0 +1,85 @@
+services:
+
+  # ==========================================================
+  # Production MySQL database
+  # ==========================================================
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+
+    volumes:
+      # Database records remain available after restarts.
+      - mysql_data:/var/lib/mysql
+
+    healthcheck:
+      # The double dollar sign prevents Docker Compose from
+      # replacing the variable before the command reaches MySQL.
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 45s
+
+    networks:
+      - eems-network
+
+
+  # ==========================================================
+  # Spring Boot backend + compiled React frontend
+  # ==========================================================
+  app:
+    image: ghcr.io/vishwajeet30/employee-management-system:latest
+    restart: unless-stopped
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    environment:
+      # Spring Boot container port.
+      PORT: 8080
+
+      # "mysql" is the Docker Compose service hostname.
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+
+      # JWT configuration.
+      APPLICATION_SECURITY_JWT_SECRET_KEY: ${APPLICATION_SECURITY_JWT_SECRET_KEY}
+      APPLICATION_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION: ${APPLICATION_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION}
+
+      # Initial administrator configuration.
+      APPLICATION_BOOTSTRAP_ADMIN_USERNAME: ${APPLICATION_BOOTSTRAP_ADMIN_USERNAME}
+      APPLICATION_BOOTSTRAP_ADMIN_EMAIL: ${APPLICATION_BOOTSTRAP_ADMIN_EMAIL}
+      APPLICATION_BOOTSTRAP_ADMIN_PASSWORD: ${APPLICATION_BOOTSTRAP_ADMIN_PASSWORD}
+
+    ports:
+      # Public port 80 forwards traffic to Spring Boot port 8080.
+      - "80:8080"
+
+    networks:
+      - eems-network
+
+
+# ============================================================
+# Docker network and persistent volume
+# ============================================================
+networks:
+  eems-network:
+
+volumes:
+  mysql_data:

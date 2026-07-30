@@ -1,44 +1,35 @@
 name: EEMS CI/CD Pipeline
 
 # ============================================================
-# Pipeline Triggers
+# Pipeline triggers
 # ============================================================
 on:
 
-  # Run when code is pushed to main or develop
   push:
     branches:
       - main
       - develop
 
-  # Run when a pull request targets main
   pull_request:
     branches:
       - main
 
+  # Allows the workflow to be started manually from GitHub.
+  workflow_dispatch:
+
 
 # ============================================================
-# Token Permissions
+# GitHub token permissions
 # ============================================================
-#
-# contents: read
-#   Allows the workflow to read repository code.
-#
-# packages: write
-#   Allows the workflow to publish Docker images to GHCR.
-#
 permissions:
   contents: read
   packages: write
 
 
-# ============================================================
-# Jobs
-# ============================================================
 jobs:
 
   # ==========================================================
-  # JOB 1: Backend Tests
+  # JOB 1: Test the Spring Boot backend
   # ==========================================================
   backend-test:
 
@@ -47,11 +38,9 @@ jobs:
 
     steps:
 
-      # Download the repository source code
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
-      # Install Java 21 and enable Maven dependency caching
       - name: Set up Java 21
         uses: actions/setup-java@v5
         with:
@@ -59,13 +48,15 @@ jobs:
           java-version: "21"
           cache: maven
 
-      # Compile the backend and run all JUnit/Mockito tests
+      - name: Allow Maven Wrapper execution
+        run: chmod +x mvnw
+
       - name: Test Spring Boot backend
-        run: mvn --batch-mode clean verify
+        run: ./mvnw --batch-mode clean verify
 
 
   # ==========================================================
-  # JOB 2: Frontend Build
+  # JOB 2: Build the React frontend
   # ==========================================================
   frontend-build:
 
@@ -74,73 +65,65 @@ jobs:
 
     steps:
 
-      # Download the repository source code
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
-      # Install Node.js and enable npm dependency caching
-      - name: Set up Node.js
+      - name: Set up Node.js 22
         uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      # Install the exact dependency versions from package-lock.json
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
 
-      # Compile TypeScript and create the production frontend build
       - name: Build React frontend
         working-directory: frontend
         run: npm run build
 
 
   # ==========================================================
-  # JOB 3: Docker Build and Publish
+  # JOB 3: Build and publish the Docker image
   # ==========================================================
   docker-build:
 
     name: Docker Build and Publish
     runs-on: ubuntu-latest
 
-    # Do not build the image unless backend and frontend succeed
     needs:
       - backend-test
       - frontend-build
 
     steps:
 
-      # Download the repository source code
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
-      # Convert owner/repository name to lowercase because
-      # Docker image names must use lowercase characters.
+      # Convert the repository name to lowercase because Docker
+      # image names must contain lowercase characters.
       - name: Set Docker image name
         shell: bash
         run: |
           echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
 
-      # Configure Docker Buildx
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      # QEMU allows an AMD GitHub runner to build an ARM image.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
 
-      # Log in to GitHub Container Registry only when code
-      # is pushed directly to the main branch.
-      #
-      # Pull requests only verify that the image builds;
-      # they do not publish an image.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Authentication is required only when publishing from main.
       - name: Log in to GitHub Container Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/login-action@v3
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Generate Docker image tags and labels
       - name: Generate Docker metadata
         id: metadata
         uses: docker/metadata-action@v5
@@ -151,20 +134,92 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-
 
-      # Build the Docker image on every workflow run.
-      #
-      # Push the image only when code is pushed to main.
       - name: Build and publish Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
 
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          # Main builds both normal x64 and Oracle ARM images.
+          #
+          # Pull requests and develop builds use only AMD64
+          # because they are build-verification jobs.
+          platforms: >-
+            ${{ github.ref == 'refs/heads/main'
+            && 'linux/amd64,linux/arm64'
+            || 'linux/amd64' }}
+
+          push: >-
+            ${{ github.event_name != 'pull_request'
+            && github.ref == 'refs/heads/main' }}
 
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
 
-          # Reuse Docker layers between workflow runs
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+
+  # ==========================================================
+  # JOB 4: Deploy to Oracle Cloud
+  # ==========================================================
+  deploy:
+
+    name: Deploy to Oracle Cloud
+    runs-on: ubuntu-latest
+
+    needs:
+      - docker-build
+
+
+    # This job remains skipped until the repository variable
+    # OCI_DEPLOY_ENABLED is set to true.
+    #
+    # That lets us push this workflow before the VM is ready.
+
+    if: >-
+      ${{ github.ref == 'refs/heads/main'
+      && github.event_name != 'pull_request'
+      && vars.OCI_DEPLOY_ENABLED == 'true' }}
+
+    env:
+      OCI_HOST: ${{ secrets.OCI_HOST }}
+      OCI_USER: ${{ secrets.OCI_USER }}
+      OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+
+    steps:
+
+      - name: Prepare SSH connection
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.ssh"
+
+          printf '%s\n' "$OCI_SSH_PRIVATE_KEY" \
+            > "$HOME/.ssh/oci_deploy_key"
+
+          chmod 600 "$HOME/.ssh/oci_deploy_key"
+
+          ssh-keyscan -H "$OCI_HOST" \
+            >> "$HOME/.ssh/known_hosts"
+
+      - name: Deploy latest image
+        shell: bash
+        run: |
+          ssh \
+            -i "$HOME/.ssh/oci_deploy_key" \
+            "$OCI_USER@$OCI_HOST" <<'REMOTE_SERVER'
+
+          set -Eeuo pipefail
+
+          cd /opt/eems
+
+          # Update deployment configuration and scripts.
+          git fetch origin main
+          git reset --hard origin/main
+
+          chmod +x scripts/deploy.sh
+
+          # Pull and start the latest Docker image.
+          ./scripts/deploy.sh
+
+          REMOTE_SERVER
