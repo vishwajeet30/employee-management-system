@@ -76,5 +76,4 @@ USER spring:spring
 EXPOSE 8080
 
 # Limit Java to a reasonable percentage of container memory.
-ENTRYPOINT [
-    "java","-XX:MaxRAMPercentage=75.0","-jar","app.jar"]
+ENTRYPOINT ["java","-XX:MaxRAMPercentage=75.0","-jar","app.jar"]
