@@ -77,6 +77,30 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
 
                         /*
+                         * The compiled React frontend (served as static
+                         * resources by Spring Boot) and the deployment
+                         * health check must remain public.
+                         *
+                         * Without this rule, "/" falls through to the
+                         * "anyRequest().authenticated()" rule below and
+                         * Spring Security returns 403 before the request
+                         * ever reaches WelcomePageHandlerMapping.
+                         */
+                        .requestMatchers(
+                                "/",
+                                "/index.html",
+                                "/favicon.ico",
+                                "/assets/**",
+                                "/static/**",
+                                "/*.js",
+                                "/*.css",
+                                "/*.svg",
+                                "/*.png",
+                                "/error"
+                        )
+                        .permitAll()
+
+                        /*
                          * Registration and login must remain public.
                          */
                         .requestMatchers("/api/v1/auth/**")
