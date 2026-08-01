@@ -77,8 +77,4 @@ EXPOSE 8080
 
 # Limit Java to a reasonable percentage of container memory.
 ENTRYPOINT [
-    "java",
-    "-XX:MaxRAMPercentage=75.0",
-    "-jar",
-    "app.jar"
-]
+    "java","-XX:MaxRAMPercentage=75.0","-jar","app.jar"]
