@@ -4,22 +4,25 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Forwards React client-side routes to index.html.
+ * Handles direct browser requests for React routes.
  *
- * React Router handles these routes inside the browser.
- * Without this controller, refreshing /employees or /leaves
- * after deployment would produce a Spring Boot 404 response.
+ * React Router normally changes pages inside the browser.
+ * However, directly opening or refreshing /dashboard,
+ * /employees or /leaves sends the request to Spring Boot.
+ *
+ * This controller forwards those requests to React's
+ * compiled index.html file.
  */
 @Controller
 public class SpaController {
 
     /**
-     * Forwards every known frontend page to React.
+     * Forwards supported frontend routes to index.html.
      *
-     * API routes are not included because they begin with
-     * /api/v1 and are handled by REST controllers.
+     * The FORWARD dispatcher type is permitted inside
+     * SecurityConfig.
      *
-     * @return internal forward to React's index.html
+     * @return internal forward to React index.html
      */
     @GetMapping({
             "/",
