@@ -1,6 +1,7 @@
 package com.project.ems.security.config;
 
 import com.project.ems.security.jwt.JwtAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,6 +9,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -15,13 +17,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 /**
  * Main Spring Security configuration.
  *
- * This class defines:
- * - Public endpoints
- * - Protected endpoints
- * - Role-based authorization
- * - Stateless session handling
- * - JWT filter placement
- * - CSRF configuration
+ * The React pages and static resources are public.
+ * Business data remains protected under /api/** using JWT.
  */
 @Configuration
 @EnableMethodSecurity
@@ -29,38 +26,39 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     /**
-     * Custom filter that reads and validates JWT tokens.
+     * Custom filter responsible for reading and validating JWT tokens.
      */
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     /**
-     * Configures the Spring Security filter chain.
+     * Configures public frontend routes, secured APIs,
+     * role-based permissions and stateless authentication.
      *
-     * @param http HttpSecurity configuration object
-     * @return configured SecurityFilterChain
-     * @throws Exception if security configuration fails
+     * @param http Spring Security configuration
+     * @return configured security filter chain
+     * @throws Exception when the configuration cannot be created
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
-            throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http) throws Exception {
 
         http
                 /*
-                 * CSRF protection is normally important for browser-based
-                 * session applications.
-                 *
-                 * This application uses stateless JWT authentication,
-                 * so CSRF protection is disabled for the REST API.
+                 * The application uses stateless JWT authentication
+                 * instead of browser sessions and CSRF tokens.
                  */
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
 
                 /*
-                 * Disable server-side HTTP sessions.
+                 * Use Spring's configured CORS support.
+                 */
+                .cors(Customizer.withDefaults())
+
+                /*
+                 * Spring Security will not create an HTTP session.
                  *
-                 * Spring Security will not store authentication
-                 * between requests.
-                 *
-                 * Every protected request must send its JWT token.
+                 * Each protected request must send:
+                 * Authorization: Bearer <JWT>
                  */
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
@@ -68,30 +66,43 @@ public class SecurityConfig {
                         )
                 )
 
-                /*
-                 * Define authorization rules.
-                 *
-                 * Rules are checked from top to bottom.
-                 * More specific rules should appear before general rules.
-                 */
                 .authorizeHttpRequests(authorize -> authorize
 
                         /*
-                         * The compiled React frontend (served as static
-                         * resources by Spring Boot) and the deployment
-                         * health check must remain public.
+                         * SpaController forwards React routes to index.html.
                          *
-                         * Without this rule, "/" falls through to the
-                         * "anyRequest().authenticated()" rule below and
-                         * Spring Security returns 403 before the request
-                         * ever reaches WelcomePageHandlerMapping.
+                         * Spring Security also checks internal FORWARD
+                         * requests, so they must be explicitly permitted.
+                         */
+                        .dispatcherTypeMatchers(
+                                DispatcherType.FORWARD,
+                                DispatcherType.ERROR
+                        )
+                        .permitAll()
+
+                        /*
+                         * Public React routes.
+                         *
+                         * These routes only serve the React application.
+                         * Protected business data is still loaded through
+                         * secured /api/** endpoints.
                          */
                         .requestMatchers(
                                 "/",
-                                "/index.html",
-                                "/favicon.ico",
+                                "/login",
+                                "/dashboard",
+                                "/employees",
+                                "/leaves",
+                                "/index.html"
+                        )
+                        .permitAll()
+
+                        /*
+                         * React static resources generated by Vite.
+                         */
+                        .requestMatchers(
                                 "/assets/**",
-                                "/static/**",
+                                "/favicon.ico",
                                 "/*.js",
                                 "/*.css",
                                 "/*.svg",
@@ -101,17 +112,17 @@ public class SecurityConfig {
                         .permitAll()
 
                         /*
-                         * Registration and login must remain public.
+                         * Registration and login APIs must be public.
                          */
                         .requestMatchers("/api/v1/auth/**")
                         .permitAll()
 
                         /*
-                         * Swagger and OpenAPI documentation must remain public.
+                         * Swagger and OpenAPI documentation.
                          */
                         .requestMatchers(
-                                "/swagger-ui/**",
                                 "/swagger-ui.html",
+                                "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/api-docs/**"
                         )
@@ -123,15 +134,16 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/v1/employees",
-                                "/api/v1/employees/"
+                                "/api/v1/employees/**"
                         )
                         .hasAnyRole("ADMIN", "HR")
 
                         /*
-                         * ADMIN and HR can update employee records.
+                         * ADMIN and HR can update employees.
                          */
                         .requestMatchers(
                                 HttpMethod.PUT,
+                                "/api/v1/employees",
                                 "/api/v1/employees/**"
                         )
                         .hasAnyRole("ADMIN", "HR")
@@ -141,12 +153,13 @@ public class SecurityConfig {
                          */
                         .requestMatchers(
                                 HttpMethod.DELETE,
+                                "/api/v1/employees",
                                 "/api/v1/employees/**"
                         )
                         .hasRole("ADMIN")
 
                         /*
-                         * Any authenticated user can view and search employees.
+                         * Any logged-in user can view and search employees.
                          */
                         .requestMatchers(
                                 HttpMethod.GET,
@@ -156,33 +169,45 @@ public class SecurityConfig {
                         .authenticated()
 
                         /*
-                         * All other endpoints require authentication.
+                         * Every leave endpoint requires authentication.
+                         *
+                         * Additional ADMIN/HR restrictions are applied
+                         * through @PreAuthorize in LeaveController.
+                         */
+                        .requestMatchers(
+                                "/api/v1/leaves",
+                                "/api/v1/leaves/**"
+                        )
+                        .authenticated()
+
+                        /*
+                         * Any future endpoint under /api also requires
+                         * a valid authenticated user by default.
+                         */
+                        .requestMatchers("/api/**")
+                        .authenticated()
+
+                        /*
+                         * Remaining non-API requests may serve frontend
+                         * resources and React routes.
                          */
                         .anyRequest()
-                        .authenticated()
+                        .permitAll()
                 )
 
                 /*
-                 * Disable the default HTML login form.
-                 *
-                 * Login is handled through:
-                 * POST /api/v1/auth/login
+                 * The project uses a custom React login page.
                  */
-                .formLogin(form -> form.disable())
+                .formLogin(AbstractHttpConfigurer::disable)
 
                 /*
-                 * Disable HTTP Basic authentication.
-                 *
-                 * Requests should authenticate using JWT Bearer tokens.
+                 * HTTP Basic authentication is not used.
                  */
-                .httpBasic(httpBasic -> httpBasic.disable())
+                .httpBasic(AbstractHttpConfigurer::disable)
 
                 /*
-                 * Add our JWT filter before Spring Security's standard
-                 * username/password authentication filter.
-                 *
-                 * This gives the JWT filter an opportunity to authenticate
-                 * the request before authorization rules are evaluated.
+                 * Run JWT validation before Spring Security's
+                 * username/password filter.
                  */
                 .addFilterBefore(
                         jwtAuthenticationFilter,
